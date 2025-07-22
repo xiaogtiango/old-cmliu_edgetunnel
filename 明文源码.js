@@ -44,7 +44,7 @@ let userIDLow;
 let userIDTime = "";
 let proxyIPPool = [];
 let path = '/?ed=2560';
-let 动态UUID;
+let 动态UUID = userID;
 let link = [];
 let banHosts = [atob('c3BlZWQuY2xvdWRmbGFyZS5jb20=')];
 let SCV = 'true';
@@ -62,7 +62,7 @@ export default {
                 const userIDs = await 生成动态UUID(动态UUID);
                 userID = userIDs[0];
                 userIDLow = userIDs[1];
-            }
+            } else 动态UUID = userID;
 
             if (!userID) {
                 return new Response('请设置你的UUID变量，或尝试重试部署，检查变量是否生效？', {
@@ -159,10 +159,10 @@ export default {
                 if (路径 == '/') {
                     if (env.URL302) return Response.redirect(env.URL302, 302);
                     else if (env.URL) return await 代理URL(env.URL, url);
-                    else return new Response(JSON.stringify(request.cf, null, 4), {
+                    else return new Response(await nginx(), {
                         status: 200,
                         headers: {
-                            'content-type': 'application/json',
+                            'Content-Type': 'text/html; charset=UTF-8',
                         },
                     });
                 } else if (路径 == `/${fakeUserID}`) {
@@ -184,7 +184,7 @@ export default {
                     let workersSum = UD;
                     let total = 24 * 1099511627776;
                     if (env.CF_EMAIL && env.CF_APIKEY) {
-                        const usage = await getUsage(env.CF_ID, env.CF_EMAIL, env.CF_APIKEY, env.CF_ALL);
+                        const usage = await getUsage(env.CF_ID, env.CF_EMAIL, env.CF_APIKEY, env.CF_APITOKEN, env.CF_ALL);
                         pagesSum = usage[1];
                         workersSum = usage[2];
                         total = env.CF_ALL ? Number(env.CF_ALL) : (1024 * 100); // 100K
@@ -1230,7 +1230,7 @@ function socks5AddressParser(address) {
         port = 80;
         hostname = latter;
     }
-    
+
     if (isNaN(port)) {
         throw new Error('无效的 SOCKS 地址格式：端口号必须是数字');
     }
@@ -1517,12 +1517,12 @@ async function 生成配置信息(userID, hostName, sub, UA, RproxyIP, _url, fak
             if (enableSocks) 订阅器 += `CFCDN（访问方式）: ${enableHttp ? "HTTP" : "Socks5"}<br>&nbsp;&nbsp;${newSocks5s.join('<br>&nbsp;&nbsp;')}<br>${socks5List}`;
             else if (proxyIP && proxyIP != '') 订阅器 += `CFCDN（访问方式）: ProxyIP<br>&nbsp;&nbsp;${proxyIPs.join('<br>&nbsp;&nbsp;')}<br>`;
             else if (RproxyIP == 'true') 订阅器 += `CFCDN（访问方式）: 自动获取ProxyIP<br>`;
-            else 订阅器 += `CFCDN（访问方式）: 无法访问, 需要您设置 proxyIP/PROXYIP ！！！<br>`
+            else 订阅器 += `CFCDN（访问方式）: 内置兜底, 您也可以设置 proxyIP/PROXYIP 。<br>`
             订阅器 += `<br>SUB（优选订阅生成器）: ${sub}`;
         } else {
             if (enableSocks) 订阅器 += `CFCDN（访问方式）: ${enableHttp ? "HTTP" : "Socks5"}<br>&nbsp;&nbsp;${newSocks5s.join('<br>&nbsp;&nbsp;')}<br>${socks5List}`;
             else if (proxyIP && proxyIP != '') 订阅器 += `CFCDN（访问方式）: ProxyIP<br>&nbsp;&nbsp;${proxyIPs.join('<br>&nbsp;&nbsp;')}<br>`;
-            else 订阅器 += `CFCDN（访问方式）: 无法访问, 需要您设置 proxyIP/PROXYIP ！！！<br>`;
+            else 订阅器 += `CFCDN（访问方式）: 内置兜底, 您也可以设置 proxyIP/PROXYIP 。<br>`;
             let 判断是否绑定KV空间 = '';
             if (env.KV) 判断是否绑定KV空间 = ` [<a href='${_url.pathname}/edit'>编辑优选列表</a>]  [<a href='${_url.pathname}/bestip'>在线优选IP</a>]`;
             订阅器 += `<br>您的订阅内容由 内置 addresses/ADD* 参数变量提供${判断是否绑定KV空间}<br>`;
@@ -2605,6 +2605,9 @@ async function bestIP(request, env, txt = 'ADD.txt') {
             } else if (ipSource === 'as24429') {
                 // AS24429列表
                 response = await fetch('https://raw.githubusercontent.com/ipverse/asn-ip/master/as/24429/ipv4-aggregated.txt');
+            } else if (ipSource === 'as35916') {
+                // AS35916列表
+                response = await fetch('https://raw.githubusercontent.com/ipverse/asn-ip/master/as/35916/ipv4-aggregated.txt');
             } else if (ipSource === 'as199524') {
                 // AS199524列表
                 response = await fetch('https://raw.githubusercontent.com/ipverse/asn-ip/master/as/199524/ipv4-aggregated.txt');
@@ -3322,6 +3325,7 @@ async function bestIP(request, env, txt = 'ADD.txt') {
                 <option value="official">CF官方列表</option>
                 <option value="cm">CM整理列表</option>
                 <option value="as13335">AS13335列表</option>
+                <option value="as35916">AS35916列表</option>
                 <option value="as209242">AS209242列表</option>
                 <option value="as24429">AS24429列表(Alibaba)</option>
                 <option value="as199524">AS199524列表(G-Core)</option>
@@ -3829,8 +3833,11 @@ async function bestIP(request, env, txt = 'ADD.txt') {
                 case 'as13335':
                     ipSourceName = 'CF全段';
                     break;
+                case 'as35916':
+                    ipSourceName = 'CF非官方1';
+                    break;
                 case 'as209242':
-                    ipSourceName = 'CF非官方';
+                    ipSourceName = 'CF非官方2';
                     break;
                 case 'as24429':
                     ipSourceName = 'Alibaba';
@@ -3988,10 +3995,11 @@ async function bestIP(request, env, txt = 'ADD.txt') {
  * @param {string} accountId - 账户ID（可选，如果没有会自动获取）
  * @param {string} email - Cloudflare 账户邮箱
  * @param {string} apikey - Cloudflare API 密钥
+ * @param {string} apitoken - Cloudflare API 令牌
  * @param {number} all - 总限额，默认10万次
  * @returns {Array} [总限额, Pages请求数, Workers请求数, 总请求数]
  */
-async function getUsage(accountId, email, apikey, all = 100000) {
+async function getUsage(accountId, email, apikey, apitoken, all = 100000) {
     /**
      * 获取 Cloudflare 账户ID
      * @param {string} email - 账户邮箱
@@ -4082,15 +4090,26 @@ async function getUsage(accountId, email, apikey, all = 100000) {
         const startDate = now.toISOString(); // 开始时间：今天0点
 
         console.log(`查询时间范围: ${startDate} 到 ${endDate}`);
+        // 准备请求头
+        let headers = {}
+        if (apikey) {
+            headers = {
+                "Content-Type": "application/json",
+                "X-AUTH-EMAIL": email,
+                "X-AUTH-KEY": apikey,
+            };
+        }
+        if (apitoken) {
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apitoken}`,
+            }
+        }
 
         // 向 Cloudflare GraphQL API 发送请求，获取今日使用量
         const response = await fetch("https://api.cloudflare.com/client/v4/graphql", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-AUTH-EMAIL": email,
-                "X-AUTH-KEY": apikey,
-            },
+            headers: headers,
             body: JSON.stringify({
                 // GraphQL 查询语句：获取 Pages 和 Workers 的请求数统计
                 query: `query getBillingMetrics($accountId: String!, $filter: AccountWorkersInvocationsAdaptiveFilter_InputObject) {
@@ -4169,4 +4188,35 @@ async function getUsage(accountId, email, apikey, all = 100000) {
         // 发生错误时返回默认值
         return [all, 0, 0, 0];
     }
+}
+
+async function nginx() {
+    const text = `
+	<!DOCTYPE html>
+	<html>
+	<head>
+	<title>Welcome to nginx!</title>
+	<style>
+		body {
+			width: 35em;
+			margin: 0 auto;
+			font-family: Tahoma, Verdana, Arial, sans-serif;
+		}
+	</style>
+	</head>
+	<body>
+	<h1>Welcome to nginx!</h1>
+	<p>If you see this page, the nginx web server is successfully installed and
+	working. Further configuration is required.</p>
+	
+	<p>For online documentation and support please refer to
+	<a href="http://nginx.org/">nginx.org</a>.<br/>
+	Commercial support is available at
+	<a href="http://nginx.com/">nginx.com</a>.</p>
+	
+	<p><em>Thank you for using nginx.</em></p>
+	</body>
+	</html>
+	`
+    return text;
 }
